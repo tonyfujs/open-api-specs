@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Data360 API",
-    "description": "This API provides users access to metadata and data files for datasets within the World Bank's Data360 Data.",
+    "description": "The Data360 API provides programmatic access to the World Bank's Data360 catalog of indicators, datasets, and reference metadata.\n\n## How the documentation is organized\n\nThis specification follows a **layered documentation** model commonly used for complex catalog APIs:\n\n1. **Operation pages** (the *Try it out* section for each endpoint) keep request and response examples short and focused. They show the most common usage and link to the full schema for everything else.\n2. **Schema reference** (under `components/schemas`) contains the complete, authoritative field list for every response type. Use it to discover field names, types, and which fields are nullable.\n3. **Description prose** (this section, and the description block of each operation) explains cross-cutting concerns: query syntax, namespacing, pagination, and how the schemas relate to each other.\n\n## Top-level namespaces in the metadata document\n\nA single metadata document (returned by `/data360/searchv2` and `/data360/metadata`) is partitioned into several **namespaces**. The `series_description` namespace shown in the request examples is only one of them. The full list:\n\n| Namespace | Contents |\n| --- | --- |\n| *(root)* | Indexing fields: `id`, `idno`, `type`, `subtype`, `dsd_name`, `dsd_version`, `dsd_codelist`, `data_confidentiality_code`, `disaggregation_types`, `tags`, `@search.score`, etc. |\n| `metadata_information` | Document-level metadata: `title`, `version_statement`, `producers`. |\n| `series_description` | The bulk of the descriptive metadata for an indicator (definitions, methodology, references, topics, dimensions, sources, license, links, ref_country, time_periods, etc.). |\n| `additional` | Visualization hints (`visualization`, `metadata_link`). |\n| `disaggregation_codes` | Per-dimension codelist values. |\n\nThe `type` field at the document root is the discriminator: it can be `indicator`, `database`, `economy`, or other catalog object types. **This specification documents the `indicator` variant in detail**; other variants share the root fields but may populate different subsets of the namespaces.\n\n## Query syntax (OData-style)\n\nThe `/data360/searchv2` and `/data360/metadata` endpoints accept an OData-style query expression. Key constructs:\n\n- `$filter=<expr>` — Boolean expression to narrow the result set. Operators: `eq`, `ne`, `gt`, `lt`, `and`, `or`, `not`.\n- `$select=<csv>` — Comma-separated list of fields to project. Use slash-paths to reach nested fields: `series_description/idno`.\n- `$orderby=<field>` — Order results by a (possibly nested) field.\n- `any(t: <expr>)` — Quantifier for array fields. Example: `series_description/topics/any(t: t/name eq 'Health')`.\n- Slash-path navigation reaches into namespaces: `series_description/database_id`, `metadata_information/title`, etc.\n\n## Pagination\n\nAll list responses are capped at 1000 records per call. Use `top` (max page size) and `skip` (offset) on `/data360/searchv2`, and `skip` on `/data360/data`.\n",
     "contact": {
       "name": "Data360 Data Support",
       "email": "data@worldbank.org"
@@ -66,87 +66,51 @@
         ],
         "responses": {
           "200": {
-        "description": "Success. Returns the total count of matching records along with an array of data objects.",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/DataResponse"
-            },
-            "examples": {
-              "sample": {
-                "summary": "Sample response",
-                "value": {
-                  "count": 7204,
-                  "value": [
-                    {
-                      "OBS_VALUE": "38.7168",
-                      "TIME_FORMAT": "P1Y",
-                      "UNIT_MULT": 0,
-                      "COMMENT_OBS": null,
-                      "OBS_STATUS": "A",
-                      "OBS_CONF": "PU",
-                      "AGG_METHOD": "_Z",
-                      "DECIMALS": "2",
-                      "COMMENT_TS": "Primary completion rate, female (% of relevant age group)",
-                      "DATA_SOURCE": "WB_WDI",
-                      "LATEST_DATA": false,
-                      "DATABASE_ID": "WB_WDI",
-                      "INDICATOR": "WB_WDI_SE_PRM_CMPT_FE_ZS",
-                      "REF_AREA": "ARB",
-                      "SEX": "F",
-                      "AGE": "_T",
-                      "URBANISATION": "_T",
-                      "COMP_BREAKDOWN_1": "_Z",
-                      "COMP_BREAKDOWN_2": "_Z",
-                      "COMP_BREAKDOWN_3": "_Z",
-                      "TIME_PERIOD": "1970",
-                      "FREQ": "A",
-                      "UNIT_MEASURE": "PT",
-                      "UNIT_TYPE": null
-                    },
-                    {
-                      "OBS_VALUE": "41.1682",
-                      "TIME_FORMAT": "P1Y",
-                      "UNIT_MULT": 0,
-                      "COMMENT_OBS": null,
-                      "OBS_STATUS": "A",
-                      "OBS_CONF": "PU",
-                      "AGG_METHOD": "_Z",
-                      "DECIMALS": "2",
-                      "COMMENT_TS": "Primary completion rate, female (% of relevant age group)",
-                      "DATA_SOURCE": "WB_WDI",
-                      "LATEST_DATA": false,
-                      "DATABASE_ID": "WB_WDI",
-                      "INDICATOR": "WB_WDI_SE_PRM_CMPT_FE_ZS",
-                      "REF_AREA": "EAR",
-                      "SEX": "F",
-                      "AGE": "_T",
-                      "URBANISATION": "_T",
-                      "COMP_BREAKDOWN_1": "_Z",
-                      "COMP_BREAKDOWN_2": "_Z",
-                      "COMP_BREAKDOWN_3": "_Z",
-                      "TIME_PERIOD": "1970",
-                      "FREQ": "A",
-                      "UNIT_MEASURE": "PT",
-                      "UNIT_TYPE": null
+            "description": "Success. Returns the total count of matching records along with an array of data objects.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse"
+                },
+                "examples": {
+                  "sample": {
+                    "summary": "Sample response",
+                    "value": {
+                      "count": 7204,
+                      "value": [
+                        {
+                          "OBS_VALUE": "38.7168",
+                          "TIME_FORMAT": "P1Y",
+                          "UNIT_MULT": 0,
+                          "COMMENT_OBS": null,
+                          "OBS_STATUS": "A",
+                          "OBS_CONF": "PU",
+                          "AGG_METHOD": "_Z",
+                          "DECIMALS": "2",
+                          "COMMENT_TS": "Primary completion rate, female (% of relevant age group)",
+                          "DATA_SOURCE": "WB_WDI",
+                          "LATEST_DATA": false,
+                          "DATABASE_ID": "WB_WDI",
+                          "INDICATOR": "WB_WDI_SE_PRM_CMPT_FE_ZS",
+                          "REF_AREA": "ARB",
+                          "SEX": "F",
+                          "AGE": "_T",
+                          "URBANISATION": "_T",
+                          "COMP_BREAKDOWN_1": "_Z",
+                          "COMP_BREAKDOWN_2": "_Z",
+                          "COMP_BREAKDOWN_3": "_Z",
+                          "TIME_PERIOD": "1970",
+                          "FREQ": "A",
+                          "UNIT_MEASURE": "PT",
+                          "UNIT_TYPE": null
+                        }
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
-          },
-          "text/plain": {
-            "schema": {
-              "type": "string"
-            }
-          },
-          "text/json": {
-            "schema": {
-              "type": "string"
-            }
           }
-        }
-      }
         }
       }
     },
@@ -188,12 +152,12 @@
     "/data360/metadata": {
       "post": {
         "summary": "Metadata based on provided filters",
-        "description": "Retrieves metadata based on a range of query filters.",
+        "description": "Retrieves metadata documents matching an OData-style query.\n\n**Field access.** Use slash-paths to reach nested fields, e.g. `series_description/database_id`. The full set of accessible fields is documented in the `MetadataDocument` schema and its child schemas (`SeriesDescription`, `MetadataInformation`, `Additional`, etc.).\n\n**Common query patterns.** See the `$filter` and `$select` examples below; for the full syntax see the API description.\n\n**Response shape.** Documents are returned inside the standard `value` array envelope. The schema is `MetadataSearchResponse`.",
         "tags": [
           "Metadata"
         ],
         "requestBody": {
-          "description": "A JSON object containing a single 'query' property with the raw search query string. The query string follows standard syntax for filtering and selecting fields.",
+          "description": "A JSON object containing a single 'query' property with the raw OData-style search query string.",
           "required": true,
           "content": {
             "application/json": {
@@ -202,7 +166,7 @@
                 "properties": {
                   "query": {
                     "type": "string",
-                    "description": "The complete search query string. This string should include all query parameters using the supported syntax. For example: \"*&$filter=series_description/database_id eq 'WB_WDI'&$select=series_description/database_id,series_description/idno\""
+                    "description": "The complete search query string. Supports `$filter`, `$select`, `$orderby`, and OData operators (`eq`, `and`, `or`, `any(...)`). Use slash-paths to reach nested fields. Example: `*&$filter=series_description/database_id eq 'WB_WDI'&$select=series_description/database_id,series_description/idno`."
                   }
                 },
                 "required": [
@@ -228,6 +192,12 @@
                   "value": {
                     "query": "&$filter=series_description/database_id eq 'WB_WDI'&$select=series_description/database_id,series_description/idno"
                   }
+                },
+                "example4": {
+                  "summary": "Filter on a nested array (topics) using any()",
+                  "value": {
+                    "query": "&$filter=series_description/topics/any(t: t/name eq 'Health') and type eq 'indicator'&$select=series_description/idno,series_description/name"
+                  }
                 }
               }
             }
@@ -235,7 +205,45 @@
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success. Returns the OData envelope with an array of metadata documents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataSearchResponse"
+                },
+                "examples": {
+                  "indicator": {
+                    "summary": "Trimmed indicator response (full schema in MetadataDocument)",
+                    "value": {
+                      "@odata.context": "https://itsda-dataexp-prd.search.windows.net/indexes('data360-metadata-vector')/$metadata#docs(*)",
+                      "@odata.count": 1,
+                      "value": [
+                        {
+                          "id": "META_IMF_BOP_IFR_BP6",
+                          "idno": "d5d4e0b6-363d-4f2c-a1c3-07fa18dd2ddd",
+                          "type": "indicator",
+                          "subtype": "timeseries",
+                          "dsd_name": "DATA360",
+                          "dsd_version": "1.2",
+                          "metadata_information": {
+                            "title": "Metadata for International investment position (IIP) (with fund record)",
+                            "idno": "META_IMF_BOP_IFR_BP6"
+                          },
+                          "series_description": {
+                            "idno": "IMF_BOP_IFR_BP6",
+                            "name": "International Investment Position (IIP) (with Fund Record)",
+                            "database_id": "IMF_BOP",
+                            "database_name": "Balance of Payments (BOP) and International Investment Position (IIP)",
+                            "periodicity": "Quarterly, Annual",
+                            "csv_link": "https://data360files.worldbank.org/data360-data/data/IMF_BOP/IMF_BOP_IFR_BP6.csv"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -243,12 +251,12 @@
     "/data360/searchv2": {
       "post": {
         "summary": "Search function",
-        "description": "Performs a search of Data360 based on the search parameters.",
+        "description": "Performs a vector/keyword search of the Data360 catalog.\n\n**Request body.** See `SearchQuerySchema` for the full set of parameters. The `select` and `filter` strings use the same slash-path / OData syntax as `/data360/metadata`.\n\n**Response shape.** Documents are returned inside the standard `value` array envelope. See `MetadataSearchResponse` and `MetadataDocument` for the full field list (over 100 fields across the `metadata_information`, `series_description`, `additional`, and `disaggregation_codes` namespaces).",
         "tags": [
           "Search"
         ],
         "requestBody": {
-          "description": "Vector search query parameters. Only the minimal set is shown in the example.",
+          "description": "Vector / keyword search query parameters. See SearchQuerySchema for all supported fields.",
           "required": true,
           "content": {
             "application/json": {
@@ -276,14 +284,43 @@
                     "top": 20,
                     "skip": 0
                   }
-                  }
+                }
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Success"
+            "description": "Success. Returns the OData envelope with an array of metadata documents.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataSearchResponse"
+                },
+                "examples": {
+                  "minimal": {
+                    "summary": "Trimmed search response (full schema in MetadataDocument)",
+                    "value": {
+                      "@odata.context": "https://itsda-dataexp-prd.search.windows.net/indexes('data360-metadata-vector')/$metadata#docs(*)",
+                      "@odata.count": 1,
+                      "value": [
+                        {
+                          "@search.score": 1.0,
+                          "id": "META_IMF_BOP_IFR_BP6",
+                          "type": "indicator",
+                          "subtype": "timeseries",
+                          "series_description": {
+                            "idno": "IMF_BOP_IFR_BP6",
+                            "name": "International Investment Position (IIP) (with Fund Record)",
+                            "database_id": "IMF_BOP"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -301,16 +338,6 @@
         },
         "example": "WB_WDI"
       },
-      "databaseIdQueryInd": {
-        "name": "databaseId",
-        "in": "query",
-        "description": "Unique identifier for the database.",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "example": "WB_WDI"
-      },
       "datasetIdQuery": {
         "name": "datasetId",
         "in": "query",
@@ -320,18 +347,6 @@
           "type": "string"
         },
         "example": "WB_WDI"
-      },
-      "topQuery": {
-        "name": "top",
-        "in": "query",
-        "description": "Maximum number of records to return.",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "format": "int32",
-          "default": 1000
-        },
-        "example": 20
       },
       "skipQuery": {
         "name": "skip",
@@ -418,7 +433,7 @@
       "compBreakdown2Query": {
         "name": "COMP_BREAKDOWN_2",
         "in": "query",
-        "description": "Indicator specific dimensionn.",
+        "description": "Indicator specific dimension.",
         "required": false,
         "schema": {
           "type": "string"
@@ -428,7 +443,7 @@
       "compBreakdown3Query": {
         "name": "COMP_BREAKDOWN_3",
         "in": "query",
-        "description": "Indicator specific dimensionn.",
+        "description": "Indicator specific dimension.",
         "required": false,
         "schema": {
           "type": "string"
@@ -505,169 +520,6 @@
         },
         "example": ""
       },
-      "bondTypeQuery": {
-        "name": "BOND_TYPE",
-        "in": "query",
-        "description": "Type of bond, if applicable.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "tenorBucketQuery": {
-        "name": "TENOR_BUCKET",
-        "in": "query",
-        "description": "Bucket for the bond tenor.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "issuerTypeQuery": {
-        "name": "ISSUER_TYPE",
-        "in": "query",
-        "description": "Type of issuer.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "issNameQuery": {
-        "name": "ISS_NAME",
-        "in": "query",
-        "description": "Name of the issuer.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "isinQuery": {
-        "name": "ISIN",
-        "in": "query",
-        "description": "International Securities Identification Number.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "tenorQuery": {
-        "name": "TENOR",
-        "in": "query",
-        "description": "Tenor of the bond.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "outstandingQuery": {
-        "name": "OUTSTANDING",
-        "in": "query",
-        "description": "Outstanding value, if applicable.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "dealSizeQuery": {
-        "name": "DEAL_SIZE",
-        "in": "query",
-        "description": "Deal size for the bond issuance.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "metricQuery": {
-        "name": "METRIC",
-        "in": "query",
-        "description": "Metric to be used for the data.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "currencyQuery": {
-        "name": "CURRENCYy",
-        "in": "query",
-        "description": "Currency code (e.g., USD, EUR).",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "dateIssQuery": {
-        "name": "DATE_ISS",
-        "in": "query",
-        "description": "Issue date of the bond.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "dateMatQuery": {
-        "name": "DATE_MAT",
-        "in": "query",
-        "description": "Maturity date of the bond.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "isLatestDataQuery": {
-        "name": "isLatestData",
-        "in": "query",
-        "description": "Flag indicating whether to retrieve the latest data.",
-        "required": false,
-        "schema": {
-          "type": "boolean",
-          "default": false,
-          "nullable": true
-        },
-        "example": ""
-      },
-      "formatQuery": {
-        "name": "format",
-        "in": "query",
-        "description": "Response format, e.g., json.",
-        "required": false,
-        "schema": {
-          "type": "string",
-          "default": "json"
-        },
-        "example": ""
-      },
-      "selectQuery": {
-        "name": "select",
-        "in": "query",
-        "description": "Fields to select in the response.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
-      "filterQuery": {
-        "name": "filter",
-        "in": "query",
-        "description": "Filter criteria for the data.",
-        "required": false,
-        "schema": {
-          "type": "string"
-        },
-        "example": ""
-      },
       "datasetIdQueryDisag": {
         "name": "datasetId",
         "in": "query",
@@ -677,26 +529,6 @@
           "type": "string"
         },
         "example": "WB_WDI"
-      },
-      "indicatorIdQuery": {
-        "name": "indicatorId",
-        "in": "query",
-        "description": "Unique identifier for the indicator.",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "example": "WB_WDI_SP_POP_TOTL"
-      },
-      "actionTypeQuery": {
-        "name": "type",
-        "in": "query",
-        "description": "Type of user action to filter by.",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "example": "click"
       }
     },
     "schemas": {
@@ -710,7 +542,7 @@
           },
           "filter": {
             "type": "string",
-            "description": "A filter expression to narrow down the search results. Remove from the body of the request if no filtering needed.",
+            "description": "An OData-style filter expression. Use slash-paths for nested fields and `any(t: ...)` for arrays. Example: `series_description/topics/any(t: t/name eq 'Infrastructure: Transportation')`.",
             "example": "series_description/topics/any(t: t/name eq 'Infrastructure: Transportation')"
           },
           "orderby": {
@@ -720,7 +552,7 @@
           },
           "select": {
             "type": "string",
-            "description": "A comma-separated list of fields to include in the response.",
+            "description": "Comma-separated list of fields to include in the response. Use slash-paths for nested fields (e.g. `series_description/idno`). See `MetadataDocument` for the full list of accessible fields.",
             "example": "series_description/idno, series_description/name, series_description/database_id"
           },
           "searchFields": {
@@ -817,122 +649,399 @@
         "additionalProperties": false
       },
       "DataResponse": {
-  "type": "object",
-  "properties": {
-    "count": {
-      "type": "integer",
-      "description": "Total number of matching records."
-    },
-    "value": {
-      "type": "array",
-      "description": "Array of data records.",
-      "items": {
         "type": "object",
+        "description": "Envelope returned by `/data360/data`.",
         "properties": {
-          "OBS_VALUE": {
-            "type": "string",
-            "description": "Observation value."
-          },
-          "TIME_FORMAT": {
-            "type": "string",
-            "description": "Time format, e.g., period (P1Y)."
-          },
-          "UNIT_MULT": {
+          "count": {
             "type": "integer",
-            "description": "Multiplier for the unit."
+            "description": "Total number of matching records."
           },
-          "COMMENT_OBS": {
-            "type": ["string", "null"],
-            "description": "Comment for the observation."
-          },
-          "OBS_STATUS": {
-            "type": "string",
-            "description": "Observation status."
-          },
-          "OBS_CONF": {
-            "type": "string",
-            "description": "Observation confidence."
-          },
-          "AGG_METHOD": {
-            "type": "string",
-            "description": "Aggregation method."
-          },
-          "DECIMALS": {
-            "type": "string",
-            "description": "Number of decimal places."
-          },
-          "COMMENT_TS": {
-            "type": "string",
-            "description": "Comment on the timeseries."
-          },
-          "DATA_SOURCE": {
-            "type": "string",
-            "description": "Identifier for the data source."
-          },
-          "LATEST_DATA": {
-            "type": "boolean",
-            "description": "Indicates if the data is the latest available."
-          },
-          "DATABASE_ID": {
-            "type": "string",
-            "description": "Identifier for the database."
-          },
-          "INDICATOR": {
-            "type": "string",
-            "description": "Identifier for the indicator."
-          },
-          "REF_AREA": {
-            "type": "string",
-            "description": "Reference area (e.g., country or region code)."
-          },
-          "SEX": {
-            "type": "string",
-            "description": "Sex of the subject."
-          },
-          "AGE": {
-            "type": "string",
-            "description": "Age group."
-          },
-          "URBANISATION": {
-            "type": "string",
-            "description": "Indicator of urbanisation."
-          },
-          "COMP_BREAKDOWN_1": {
-            "type": "string",
-            "description": "Composite breakdown dimension 1."
-          },
-          "COMP_BREAKDOWN_2": {
-            "type": "string",
-            "description": "Composite breakdown dimension 2."
-          },
-          "COMP_BREAKDOWN_3": {
-            "type": "string",
-            "description": "Composite breakdown dimension 3."
-          },
-          "TIME_PERIOD": {
-            "type": "string",
-            "description": "Time period of the observation."
-          },
-          "FREQ": {
-            "type": "string",
-            "description": "Frequency of the data."
-          },
-          "UNIT_MEASURE": {
-            "type": "string",
-            "description": "Unit of measure."
-          },
-          "UNIT_TYPE": {
-            "type": ["string", "null"],
-            "description": "Type of unit (if applicable)."
+          "value": {
+            "type": "array",
+            "description": "Array of data observations.",
+            "items": {
+              "$ref": "#/components/schemas/DataObservation"
+            }
           }
         },
         "additionalProperties": false
+      },
+      "DataObservation": {
+        "type": "object",
+        "description": "A single data observation (a row in the time series).",
+        "properties": {
+          "OBS_VALUE": { "type": "string", "description": "Observation value." },
+          "TIME_FORMAT": { "type": "string", "description": "Time format, e.g., period (P1Y)." },
+          "UNIT_MULT": { "type": "integer", "description": "Multiplier for the unit." },
+          "COMMENT_OBS": { "type": "string", "nullable": true, "description": "Comment for the observation." },
+          "OBS_STATUS": { "type": "string", "description": "Observation status." },
+          "OBS_CONF": { "type": "string", "description": "Observation confidence." },
+          "AGG_METHOD": { "type": "string", "description": "Aggregation method." },
+          "DECIMALS": { "type": "string", "description": "Number of decimal places." },
+          "COMMENT_TS": { "type": "string", "description": "Comment on the timeseries." },
+          "DATA_SOURCE": { "type": "string", "description": "Identifier for the data source." },
+          "LATEST_DATA": { "type": "boolean", "description": "Indicates if the data is the latest available." },
+          "DATABASE_ID": { "type": "string", "description": "Identifier for the database." },
+          "INDICATOR": { "type": "string", "description": "Identifier for the indicator." },
+          "REF_AREA": { "type": "string", "description": "Reference area (e.g., country or region code)." },
+          "SEX": { "type": "string", "description": "Sex of the subject." },
+          "AGE": { "type": "string", "description": "Age group." },
+          "URBANISATION": { "type": "string", "description": "Indicator of urbanisation." },
+          "COMP_BREAKDOWN_1": { "type": "string", "description": "Composite breakdown dimension 1." },
+          "COMP_BREAKDOWN_2": { "type": "string", "description": "Composite breakdown dimension 2." },
+          "COMP_BREAKDOWN_3": { "type": "string", "description": "Composite breakdown dimension 3." },
+          "TIME_PERIOD": { "type": "string", "description": "Time period of the observation." },
+          "FREQ": { "type": "string", "description": "Frequency of the data." },
+          "UNIT_MEASURE": { "type": "string", "description": "Unit of measure." },
+          "UNIT_TYPE": { "type": "string", "nullable": true, "description": "Type of unit (if applicable)." }
+        },
+        "additionalProperties": false
+      },
+      "MetadataSearchResponse": {
+        "type": "object",
+        "description": "Envelope returned by `/data360/searchv2` and `/data360/metadata`. Follows the OData response shape.",
+        "properties": {
+          "@odata.context": {
+            "type": "string",
+            "description": "URI describing the metadata of the response."
+          },
+          "@odata.count": {
+            "type": "integer",
+            "description": "Total number of matching documents (returned when `count=true`)."
+          },
+          "value": {
+            "type": "array",
+            "description": "Array of metadata documents.",
+            "items": {
+              "$ref": "#/components/schemas/MetadataDocument"
+            }
+          }
+        }
+      },
+      "MetadataDocument": {
+        "type": "object",
+        "description": "A single Data360 catalog document. The `type` field is the discriminator: `indicator`, `database`, `economy`, etc. This schema documents the `indicator` variant in full; other variants share the root fields but may populate different subsets of the namespaces.\n\nFields are organized into four namespaces plus root-level indexing fields:\n- root: indexing / discriminator fields\n- `metadata_information`: document-level metadata\n- `series_description`: descriptive metadata (the bulk of the content)\n- `additional`: visualization hints\n- `disaggregation_codes`: per-dimension codelist values",
+        "properties": {
+          "@search.score": {
+            "type": "number",
+            "format": "double",
+            "description": "Relevance score assigned by the search engine (present on `/searchv2` responses)."
+          },
+          "id": { "type": "string", "description": "Internal document ID." },
+          "idno": { "type": "string", "description": "Globally unique identifier (UUID) of the document." },
+          "type": {
+            "type": "string",
+            "description": "Document type discriminator.",
+            "enum": ["indicator", "database", "economy", "dataset", "topic", "source"]
+          },
+          "subtype": { "type": "string", "nullable": true, "description": "Document subtype (e.g. `timeseries`)." },
+          "disaggregation_types": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Labels of the disaggregation dimensions available for this indicator."
+          },
+          "isDelete": { "type": "boolean", "nullable": true },
+          "doc_type": { "type": "string", "nullable": true },
+          "remove_chart_type": { "type": "string", "nullable": true, "description": "Comma-separated list of chart types that should not be offered for this indicator." },
+          "data_confidentiality_code": { "type": "string", "nullable": true, "description": "Confidentiality code (e.g. `PU` for public)." },
+          "data_confidentiality_name": { "type": "string", "nullable": true, "description": "Human-readable confidentiality label." },
+          "dsd_name": { "type": "string", "nullable": true, "description": "Name of the data structure definition (e.g. `DATA360`)." },
+          "dsd_version": { "type": "string", "nullable": true, "description": "Version of the DSD." },
+          "dsd_codelist": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Codelists referenced by the DSD."
+          },
+          "is_active": { "type": "boolean", "nullable": true },
+          "metadata_information": { "$ref": "#/components/schemas/MetadataInformation" },
+          "series_description": { "$ref": "#/components/schemas/SeriesDescription" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "additional": { "$ref": "#/components/schemas/Additional" },
+          "product": { "type": "string", "nullable": true },
+          "disaggregation_codes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DisaggregationCode" },
+            "description": "Codelist values for each disaggregation dimension."
+          }
+        }
+      },
+      "MetadataInformation": {
+        "type": "object",
+        "description": "Document-level metadata namespace.",
+        "properties": {
+          "title": { "type": "string", "nullable": true, "description": "Document title." },
+          "idno": { "type": "string", "nullable": true, "description": "Identifier of the metadata record." },
+          "prod_date": { "type": "string", "nullable": true, "description": "Production date." },
+          "version_statement": { "$ref": "#/components/schemas/VersionStatement" },
+          "producers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Producer" }
+          }
+        }
+      },
+      "VersionStatement": {
+        "type": "object",
+        "properties": {
+          "version": { "type": "string", "nullable": true },
+          "version_date": { "type": "string", "nullable": true },
+          "version_resp": { "type": "string", "nullable": true, "description": "Person or entity responsible for this version." },
+          "version_notes": { "type": "string", "nullable": true }
+        }
+      },
+      "Producer": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "nullable": true },
+          "abbr": { "type": "string", "nullable": true, "description": "Abbreviation of the producer's name." },
+          "affiliation": { "type": "string", "nullable": true },
+          "role": { "type": "string", "nullable": true }
+        }
+      },
+      "SeriesDescription": {
+        "type": "object",
+        "description": "Descriptive metadata namespace. Contains the bulk of the human-readable metadata for an indicator: identifiers, definitions, methodology, references, sources, license, links, and per-indicator dimension/country/time-period catalogs.",
+        "properties": {
+          "idno": { "type": "string", "nullable": true, "description": "Indicator identifier (matches the `INDICATOR` filter on `/data360/data`)." },
+          "doi": { "type": "string", "nullable": true, "description": "Digital Object Identifier." },
+          "name": { "type": "string", "nullable": true, "description": "Indicator name." },
+          "display_name": { "type": "string", "nullable": true },
+          "database_id": { "type": "string", "nullable": true, "description": "Database identifier (matches the `DATABASE_ID` filter on `/data360/data`)." },
+          "database_name": { "type": "string", "nullable": true },
+          "date_last_update": { "type": "string", "nullable": true },
+          "date_released": { "type": "string", "nullable": true },
+          "measurement_unit": { "type": "string", "nullable": true },
+          "release_calendar": { "type": "string", "nullable": true },
+          "periodicity": { "type": "string", "nullable": true, "description": "E.g. `Annual`, `Quarterly`, `Monthly`, or a comma-separated combination." },
+          "base_period": { "type": "string", "nullable": true },
+          "definition_short": { "type": "string", "nullable": true },
+          "definition_long": { "type": "string", "nullable": true },
+          "statistical_concept": { "type": "string", "nullable": true },
+          "methodology": { "type": "string", "nullable": true },
+          "derivation": { "type": "string", "nullable": true },
+          "imputation": { "type": "string", "nullable": true },
+          "missing": { "type": "string", "nullable": true },
+          "quality_checks": { "type": "string", "nullable": true },
+          "quality_note": { "type": "string", "nullable": true },
+          "sources_discrepancies": { "type": "string", "nullable": true },
+          "series_break": { "type": "string", "nullable": true },
+          "limitation": { "type": "string", "nullable": true },
+          "relevance": { "type": "string", "nullable": true },
+          "aggregation_method": { "type": "string", "nullable": true },
+          "disaggregation": { "type": "string", "nullable": true },
+          "confidentiality": { "type": "string", "nullable": true },
+          "confidentiality_status": { "type": "string", "nullable": true },
+          "confidentiality_note": { "type": "string", "nullable": true },
+          "citation_requirement": { "type": "string", "nullable": true },
+          "sources_note": { "type": "string", "nullable": true },
+          "acknowledgement_statement": { "type": "string", "nullable": true },
+          "disclaimer": { "type": "string", "nullable": true },
+          "economies_count": { "type": "integer", "nullable": true },
+          "csv_link": { "type": "string", "nullable": true, "description": "Direct URL to the CSV data file." },
+          "excel_link": { "type": "string", "nullable": true },
+          "json_link": { "type": "string", "nullable": true, "description": "Direct URL to the JSON metadata file." },
+          "api_link": { "type": "string", "nullable": true, "description": "Pre-built `/data360/data` API URL for this indicator." },
+          "indicator_count": { "type": "integer", "nullable": true },
+          "api_explorer_link": { "type": "string", "nullable": true },
+          "remove_chart_type": { "type": "string", "nullable": true },
+          "authoring_entity": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "version_statement": { "$ref": "#/components/schemas/VersionStatement" },
+          "aliases": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "alternate_identifiers": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "languages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Language" }
+          },
+          "dimensions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Dimension" },
+            "description": "Dimensions along which the indicator is disaggregated."
+          },
+          "definition_references": { "type": "array", "items": { "type": "object" } },
+          "statistical_concept_references": { "type": "array", "items": { "type": "object" } },
+          "methodology_references": { "type": "array", "items": { "type": "object" } },
+          "derivation_references": { "type": "array", "items": { "type": "object" } },
+          "imputation_references": { "type": "array", "items": { "type": "object" } },
+          "topics": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Topic" },
+            "description": "Topics the indicator belongs to (across multiple vocabularies / hierarchies)."
+          },
+          "time_periods": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TimePeriod" }
+          },
+          "ref_country": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RefArea" },
+            "description": "Reference areas (countries/economies) for which the indicator has data."
+          },
+          "geographic_units": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "aggregation_method_references": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "license": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/License" }
+          },
+          "links": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "api_documentation": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Source" }
+          },
+          "notes": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "related_indicators": {
+            "type": "array",
+            "items": { "type": "object" }
+          }
+        }
+      },
+      "Language": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Language name (e.g. `English`)." },
+          "code": { "type": "string", "description": "Language code (e.g. `EN`)." }
+        }
+      },
+      "Dimension": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "nullable": true },
+          "label": { "type": "string", "nullable": true, "description": "Human-readable dimension label." },
+          "description": { "type": "string", "nullable": true }
+        }
+      },
+      "Topic": {
+        "type": "object",
+        "description": "A topic classification entry. Topics can be hierarchical via `parent_id`, and the same indicator can be classified in multiple vocabularies.",
+        "properties": {
+          "id": { "type": "string", "nullable": true, "description": "Topic identifier (e.g. `P3_000001`)." },
+          "name": { "type": "string", "nullable": true, "description": "Topic name (e.g. `Economic Policy`)." },
+          "parent_id": { "type": "string", "nullable": true, "description": "Parent topic ID for hierarchical vocabularies." },
+          "vocabulary": { "type": "string", "nullable": true, "description": "Source vocabulary (e.g. `WB Practice Groups`, `Data360 Topic L1`)." },
+          "uri": { "type": "string", "nullable": true }
+        }
+      },
+      "TimePeriod": {
+        "type": "object",
+        "properties": {
+          "start": { "type": "string", "nullable": true, "description": "Start period (e.g. `1948` or `2010-Q1`)." },
+          "end": { "type": "string", "nullable": true, "description": "End period." },
+          "notes": { "type": "string", "nullable": true }
+        }
+      },
+      "RefArea": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Country / region name." },
+          "code": { "type": "string", "description": "ISO-3 country code (or other reference area code)." }
+        }
+      },
+      "License": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "nullable": true },
+          "uri": { "type": "string", "nullable": true },
+          "note": { "type": "string", "nullable": true }
+        }
+      },
+      "Source": {
+        "type": "object",
+        "description": "An external source from which the indicator data is drawn.",
+        "properties": {
+          "idno": { "type": "string", "nullable": true },
+          "type": { "type": "string", "nullable": true },
+          "name": { "type": "string", "nullable": true },
+          "organization": { "type": "string", "nullable": true },
+          "publisher": { "type": "string", "nullable": true },
+          "publication_date": { "type": "string", "nullable": true },
+          "uri": { "type": "string", "nullable": true },
+          "access_date": { "type": "string", "nullable": true },
+          "note": { "type": "string", "nullable": true },
+          "other_identifiers": { "type": "array", "items": { "type": "object" } },
+          "authors": { "type": "array", "items": { "type": "object" } },
+          "datasets": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "Additional": {
+        "type": "object",
+        "description": "Auxiliary namespace for visualization and presentation hints.",
+        "properties": {
+          "metadata_link": {
+            "type": "array",
+            "items": { "type": "object" }
+          },
+          "visualization": { "$ref": "#/components/schemas/Visualization" }
+        }
+      },
+      "Visualization": {
+        "type": "object",
+        "description": "Hints used by Data360 front-ends to render charts for this indicator.",
+        "properties": {
+          "scale_type": { "type": "string", "nullable": true },
+          "legend_type": { "type": "string", "nullable": true },
+          "axis_type": { "type": "string", "nullable": true },
+          "notes": { "type": "string", "nullable": true },
+          "axis_values": { "type": "string", "nullable": true },
+          "axis_values_params": { "type": "string", "nullable": true },
+          "display_name": { "type": "string", "nullable": true },
+          "suppression": { "type": "string", "nullable": true },
+          "temporal_default": { "type": "string", "nullable": true },
+          "temporal_cutoff": { "type": "string", "nullable": true },
+          "div_params": { "type": "array", "items": { "type": "object" } },
+          "axis_type_params": { "type": "array", "items": { "type": "object" } },
+          "bin_params": { "type": "array", "items": { "type": "object" } },
+          "missing_data": { "type": "array", "items": { "type": "object" } },
+          "chart_type": {
+            "type": "array",
+            "description": "Chart types recommended for this indicator.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "chart_types": { "type": "string", "description": "Chart type name (e.g. `stackedBar`, `pie`, `line`)." }
+              }
+            }
+          }
+        }
+      },
+      "DisaggregationCode": {
+        "type": "object",
+        "description": "Codelist values available for a single disaggregation dimension on this indicator.",
+        "properties": {
+          "name": { "type": "string", "description": "Dimension name (e.g. `COMP_BREAKDOWN_1`)." },
+          "value": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Allowed code values for the dimension."
+          },
+          "label_name": { "type": "string", "description": "Human-readable label of the dimension." }
+        }
       }
-    }
-  },
-  "additionalProperties": false
-}
-
     }
   }
 }
